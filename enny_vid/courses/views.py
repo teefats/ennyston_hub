@@ -1,21 +1,20 @@
-from django.shortcuts import render
-from django.views.generic.list import ListView
-from .models import Course, Content, Module, Subject
 from django.urls import reverse_lazy
-from django.views.generic.list import ListView
-from django.views.generic.edit import CreateView, UpdateView, DeleteView
-from django.views.generic.detail import DetailView
-from django.db.models import Count
-from django.apps import apps
-from .forms import ModuleFormSet
-from django.forms.models import modelform_factory
 from django.shortcuts import redirect, get_object_or_404
 from django.views.generic.base import TemplateResponseMixin, View
-from .models import Course, Subject
-from braces.views import CsrfExemptMixin, JsonRequestResponseMixin
+from django.views.generic.list import ListView
+from django.views.generic.edit import CreateView, UpdateView, \
+                                      DeleteView
+from django.views.generic.detail import DetailView
 from django.contrib.auth.mixins import LoginRequiredMixin, \
                                        PermissionRequiredMixin
-# Create your views here.
+from django.forms.models import modelform_factory
+from django.apps import apps
+from django.db.models import Count
+from django.core.cache import cache
+from braces.views import CsrfExemptMixin, JsonRequestResponseMixin
+from students.forms import CourseEnrollForm
+from .models import Course, Module, Content, Subject
+from .forms import ModuleFormSet
 
 class OwnerMixin(object):
     def get_queryset(self):
@@ -192,9 +191,11 @@ class CourseListView(TemplateResponseMixin, View):
     template_name = 'courses/course/list.html'
 
     def get(self, request, subject=None):
-        subjects = Subject.objects.annotate(
+        subjects = cache.get('all_subjects')
+        if not subjects:
+            subjects = Subject.objects.annotate(
                             total_courses=Count('courses'))
-            
+            cache.set('all_subjects', subjects)
         courses = Course.objects.annotate(
                            total_modules=Count('modules'))
         if subject:
@@ -207,8 +208,8 @@ class CourseDetailView(DetailView):
     model = Course
     template_name = 'courses/course/detail.html'
 
-    # def get_context_data(self, **kwargs):
-    #     context = super().get_context_data(**kwargs)
-    #     context['enroll_form'] = CourseEnrollForm(
-    #                                initial={'course':self.object})
-    #     return context
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['enroll_form'] = CourseEnrollForm(
+                                   initial={'course':self.object})
+        return context
