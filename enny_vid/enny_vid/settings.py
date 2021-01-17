@@ -40,7 +40,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'students',
     'embed_video',
-    'memcache_status'
+    'memcache_status',
+    'redisboard',
+   
 ]
 
 MIDDLEWARE = [
@@ -139,7 +141,7 @@ CACHES = {
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient"
         },
-        "KEY_PREFIX": "example"
+       
     }
 }
 CACHE_TTL = 60 * 15
